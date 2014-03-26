@@ -23,7 +23,13 @@ module.exports = function (stream, cb) {
   stream
     .pipe(zlib.createGunzip())
     .on('error', errback)
-    .pipe(dtar())
+    .pipe(dtar(function (header) {
+      var i = header.name.indexOf('/')
+      var dir = header.name.substring(0, i)
+      if(dir !== 'package')
+        header.name = 'package'+ header.name.substring(i)
+      return header
+    }))
     .on('error', errback)
     .pipe(zlib.createGzip())
     .pipe(concat(function (data) {
