@@ -36,7 +36,6 @@ var request = require('request')
 var mkdirp  = require('mkdirp')
 var npmUrl  = require('./npm-url')
 var deterministic = require('./deterministic')
-var createResolve = require('./resolve')
 
 var createDefer = require('./defer')
 
@@ -58,7 +57,7 @@ module.exports = function (config) {
 
     get = cache(db, blobs, {getter: function (key, meta, cb) {
       var url = npmUrl (key)
-      console.error(key, meta, url)
+
       //if it's a github url, must cleanup the tarball
       if(/^https?:\/\/\w+\.github\.com/.test(url))
         deterministic(request({url: url, encoding: null}), cb)
@@ -66,6 +65,11 @@ module.exports = function (config) {
       else
         request({url: url, encoding: null}, function (err, response, body) {
           if(err) return cb(err)
+          console.error(response.statusCode)
+          if(response.statusCode !== 200) {
+            console.error(body.toString())
+            return cb(new Error(body.toString()))
+          }
           cb(null, body, {})
         })
     
@@ -80,10 +84,11 @@ module.exports = function (config) {
   getter.resolve = defer(function (module, range, opts, cb) {
     if(!cb) cb = opts, opts = {}
     //it's a url
-    console.log(module, range, /\//.test(range))
     if(/\//.test(range)) {
       get(range, config, next)
     }
+    else if(semver.valid(range))
+      get(module+'@'+range, config, next)
     //it's a module
     else {
       var versions = {}
@@ -96,7 +101,7 @@ module.exports = function (config) {
           var version = semver.maxSatisfying(Object.keys(versions), range)
           if(!version) return cb(new Error('could not resolve' + module + '@' + range))
 
-          cachedb.get(versions[version].hash, {}, next)
+          get(versions[version].hash, {}, next)
         })
 
     }
@@ -105,14 +110,12 @@ module.exports = function (config) {
       //**************************************************
       //extract the package.json from data, and return it.
       if(err) return cb(err)
-      console.error('extract', meta)
-      zlib.gunzip(data, function (err, data) {
-        
+
+      zlib.gunzip(data, function (err, data) {        
         if(err) return cb(err)
 
         var extract = tar.extract()
           .on('entry', function (header, stream, done) {
-            console.error(header)
             if(header.name !== 'package/package.json') return done()
             
             stream.pipe(concat(function (data) {
@@ -139,7 +142,6 @@ if(!module.parent) {
   if(opts.resolve) {
     var m = opts.resolve.split('@')[0]
     var v = opts.resolve.split('@')[1]
-    console.log(opts.resolve, m, v)
     return get.resolve(m, v, opts, function (err, pkg) {
       if(err) throw err
       console.log(JSON.stringify(pkg, null, 2))
@@ -148,7 +150,6 @@ if(!module.parent) {
 
   get(id, opts, function (err, body, meta) {
     if(err) throw err
-    console.error(meta)
     if(opts.dump !== false)
       process.stdout.write(body)
   })
