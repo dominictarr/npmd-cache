@@ -25,6 +25,7 @@
   hmm, maybe could add in signatures at this point too?
 
 */
+
 var path    = require('path')
 //var level   = require('level')
 var levelup = require('levelup')
@@ -35,42 +36,98 @@ var request = require('request')
 var mkdirp  = require('mkdirp')
 var npmUrl  = require('./npm-url')
 var deterministic = require('./deterministic')
+var createResolve = require('./resolve')
+
+var createDefer = require('./defer')
+
+var semver = require('semver')
+var zlib   = require('zlib')
+var crypto = require('crypto')
+var tar    = require('tar-stream')
+var concat = require('concat-stream')
+
 
 module.exports = function (config) {
-  var get, waiting = []
+  var get, db, blobs
+
+  var defer = createDefer()
+
   mkdirp(config.path, function () {
+    db = levelup(path.join(config.path, 'db'), {encoding: 'json', db: locket})
+    blobs = CAS(path.join(config.path, 'blobs'))
 
-    var db = levelup(path.join(config.path, 'db'), {encoding: 'json', db: locket})
-    var blobs = CAS(path.join(config.path, 'blobs'))
     get = cache(db, blobs, {getter: function (key, meta, cb) {
-        var url = npmUrl (key)
-        console.error(key, meta, url)
-        //if it's a github url, must cleanup the tarball
-        if(/^https?:\/\/\w+\.github\.com/.test(url))
-          deterministic(request({url: url, encoding: null}), cb)
-          
-        else
-          request({url: url, encoding: null}, function (err, response, body) {
-            if(err) return cb(err)
-            cb(null, body, {})
-          })
-        
-      }})
-
-    get.db = get
-    get.cache = blobs
-
-
-    //trigger all defered calls.
-    while(waiting.length)
-      get.apply(null, waiting.shift())
-
+      var url = npmUrl (key)
+      console.error(key, meta, url)
+      //if it's a github url, must cleanup the tarball
+      if(/^https?:\/\/\w+\.github\.com/.test(url))
+        deterministic(request({url: url, encoding: null}), cb)
+      
+      else
+        request({url: url, encoding: null}, function (err, response, body) {
+          if(err) return cb(err)
+          cb(null, body, {})
+        })
+    
+    }})
+    defer.ready()
   })
 
-  return function () {
-    if(get) return get.apply(this, arguments)
-    else waiting.push([].slice.call(arguments))
-  }
+  var getter = defer(function () {
+    return get.apply(this, arguments)
+  })
+
+  getter.resolve = defer(function (module, range, opts, cb) {
+    if(!cb) cb = opts, opts = {}
+    //it's a url
+    console.log(module, range, /\//.test(range))
+    if(/\//.test(range)) {
+      get(range, config, next)
+    }
+    //it's a module
+    else {
+      var versions = {}
+      db.createReadStream({start: module + '\x00', end: module + '\xff\xff'})
+        .on('data', function (pkg) {
+          var version = pkg.key.split('@')[1]
+          versions[version] = pkg.value
+        })
+        .on('end', function () {
+          var version = semver.maxSatisfying(Object.keys(versions), range)
+          if(!version) return cb(new Error('could not resolve' + module + '@' + range))
+
+          cachedb.get(versions[version].hash, {}, next)
+        })
+
+    }
+
+    function next(err, data, meta) {
+      //**************************************************
+      //extract the package.json from data, and return it.
+      if(err) return cb(err)
+      console.error('extract', meta)
+      zlib.gunzip(data, function (err, data) {
+        
+        if(err) return cb(err)
+
+        var extract = tar.extract()
+          .on('entry', function (header, stream, done) {
+            console.error(header)
+            if(header.name !== 'package/package.json') return done()
+            
+            stream.pipe(concat(function (data) {
+              try { data = JSON.parse(data) } catch (err) { return done(), cb(err) }
+              done(), cb(null, data)
+            }))
+          })
+
+        extract.write(data)
+        extract.end()
+      })  
+    }
+  })
+
+  return getter
 
 }
 
@@ -78,6 +135,16 @@ if(!module.parent) {
   var opts = require('minimist')(process.argv.slice(2))
   var get = module.exports ({path: process.cwd() + '/tmp'})
   var id = opts._[0]
+
+  if(opts.resolve) {
+    var m = opts.resolve.split('@')[0]
+    var v = opts.resolve.split('@')[1]
+    console.log(opts.resolve, m, v)
+    return get.resolve(m, v, opts, function (err, pkg) {
+      if(err) throw err
+      console.log(JSON.stringify(pkg, null, 2))
+    })
+  }
 
   get(id, opts, function (err, body, meta) {
     if(err) throw err
