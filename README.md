@@ -1,0 +1,6 @@
+# npmd-cache
+
+
+## License
+
+MIT

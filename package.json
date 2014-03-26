@@ -1,0 +1,31 @@
+{
+  "name": "npmd-cache",
+  "description": "",
+  "version": "0.0.0",
+  "homepage": "https://github.com/dominictarr/npmd-cache",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dominictarr/npmd-cache.git"
+  },
+  "dependencies": {
+    "sha256d": "~1.0.0",
+    "level": "~0.18.0",
+    "request": "~2.34.0",
+    "mkdirp": "~0.3.5",
+    "npm-github-resolve-url": "0.0.0",
+    "tar": "~0.1.19",
+    "locket": "bigeasy/locket",
+    "levelup": "~0.18.2",
+    "level-content-cache": "~1.1.0",
+    "content-addressable-store": "~1.4.0",
+    "deterministic-tar": "0.0.0"
+  },
+  "devDependencies": {
+    "minimist": "0.0.8"
+  },
+  "scripts": {
+    "test": "set -e; for t in test/*.js; do node $t; done"
+  },
+  "author": "Dominic Tarr <dominic.tarr@gmail.com> (dominictarr.com)",
+  "license": "MIT"
+}
