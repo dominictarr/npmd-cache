@@ -78,7 +78,7 @@ if(!module.parent) {
   var opts = require('minimist')(process.argv.slice(2))
   var get = module.exports ({path: process.cwd() + '/tmp'})
   var id = opts._[0]
-  console.error(id)
+
   get(id, opts, function (err, body, meta) {
     if(err) throw err
     console.error(meta)
