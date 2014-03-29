@@ -16,7 +16,7 @@
     "tar": "~0.1.19",
     "locket": "bigeasy/locket",
     "levelup": "~0.18.2",
-    "level-content-cache": "~1.1.0",
+    "level-content-cache": "^1.1.2",
     "content-addressable-store": "~1.4.0",
     "deterministic-tar": "~0.1.0",
     "semver": "~2.2.1"
