@@ -18,7 +18,8 @@
     "content-addressable-store": "~1.4.0",
     "deterministic-tar": "~0.1.0",
     "semver": "~2.2.1",
-    "tar-stream": "~0.3.0"
+    "tar-stream": "~0.3.0",
+    "concat-stream": "~1.4.4"
   },
   "devDependencies": {
     "minimist": "0.0.8"
