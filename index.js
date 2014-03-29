@@ -27,7 +27,6 @@
 */
 
 var path    = require('path')
-//var level   = require('level')
 var levelup = require('levelup')
 var locket  = require('locket')
 var CAS     = require('content-addressable-store')
@@ -53,7 +52,13 @@ module.exports = function (config) {
 
   mkdirp(config.path, function () {
     db = levelup(path.join(config.path, 'db'), {encoding: 'json', db: locket})
-    blobs = CAS(path.join(config.path, 'blobs'))
+
+    //***************************************************
+    //*** TODO: migrate to sha256.
+    //*** sha1 is insecure, but need it to be compatible with npm.
+    //***************************************************
+
+    blobs = CAS(path.join(config.path, 'blobs'), 'sha1')
 
     get = cache(db, blobs, {getter: function (key, meta, cb) {
       var url = npmUrl (key)
@@ -101,7 +106,9 @@ module.exports = function (config) {
           var version = semver.maxSatisfying(Object.keys(versions), range)
           if(!version) return cb(new Error('could not resolve' + module + '@' + range))
 
-          get(versions[version].hash, {}, next)
+          get(versions[version].hash, function (err, content) {
+            next(err, content, versions[version])
+          })
         })
 
     }
@@ -109,6 +116,7 @@ module.exports = function (config) {
     function next(err, data, meta) {
       //**************************************************
       //extract the package.json from data, and return it.
+      console.error(meta)
       if(err) return cb(err)
 
       zlib.gunzip(data, function (err, data) {        
@@ -120,6 +128,7 @@ module.exports = function (config) {
             
             stream.pipe(concat(function (data) {
               try { data = JSON.parse(data) } catch (err) { return done(), cb(err) }
+              data.shasum = meta.hash
               done(), cb(null, data)
             }))
           })
@@ -131,7 +140,6 @@ module.exports = function (config) {
   })
 
   return getter
-
 }
 
 if(!module.parent) {
@@ -152,5 +160,7 @@ if(!module.parent) {
     if(err) throw err
     if(opts.dump !== false)
       process.stdout.write(body)
+    else
+      console.log(meta)
   })
 }
