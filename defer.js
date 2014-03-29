@@ -1,10 +1,10 @@
 module.exports = function createDefer () {
-  var waiting = []
+  var waiting = [], ready = false
   function defer (fun) {
     return function () {
       var args = [].slice.call(arguments)
       var self = this
-      if(waiting) 
+      if(!ready) 
         waiting.push(function () {
           return fun.apply(self, args)
         })
@@ -15,8 +15,9 @@ module.exports = function createDefer () {
 
   defer.ready = function () {
     defer.ready = function () {
-      throw new Error('defer.ready called twice')
+      throw new Error('defer.ready() called twice')
     }
+    ready = true
     while(waiting.length)
       waiting.shift()()
   }
