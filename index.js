@@ -70,15 +70,15 @@ module.exports = function (config) {
       else
         request({url: url, encoding: null}, function (err, response, body) {
           if(err) return cb(err)
-          console.error(response.statusCode)
+
           if(response.statusCode !== 200) {
-            console.error(body.toString())
             return cb(new Error(body.toString()))
           }
           cb(null, body, {})
         })
     
     }})
+    console.log("READY")
     defer.ready()
   })
 
@@ -87,6 +87,7 @@ module.exports = function (config) {
   })
 
   getter.resolve = defer(function (module, range, opts, cb) {
+    console.error('***************', module, range)
     if(!cb) cb = opts, opts = {}
     //it's a url
     if(/\//.test(range)) {
@@ -144,7 +145,7 @@ module.exports = function (config) {
 
 if(!module.parent) {
   var opts = require('minimist')(process.argv.slice(2))
-  var get = module.exports ({path: process.cwd() + '/tmp'})
+  var get = module.exports ({path: path.join(process.env.HOME, '.npmd')})
   var id = opts._[0]
 
   if(opts.resolve) {
