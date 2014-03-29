@@ -1,31 +1,3 @@
-/*
- two parts: 
-  - Content Addressable Store of tarballs
-  - map of module_id:tarball hash
-
-  module_id is module@version
-  or http url or git url, or short github url
-
-  If it's a module@version, or a giturl with a commit
-  then it's immutable, the code it points to will never change.
-
-  else, store the timestamp too, and freshen it if the user passes that option.
-
-  Idea: also support sha256d?
-  shouldn't use sha1 anymore...
-  could detect this just by the length?
-
-  Othewise: {sha1: hash, ts: timestamp, sha256d: hash2}
-
-  Then the user can request a tarball by any valid id
-  or by a hash, which will point to an exact version
-
-  Then, check that both the sha1 AND the sha256d are correct.
-  that will allow it to work with legacy code.
-  hmm, maybe could add in signatures at this point too?
-
-*/
-
 var path    = require('path')
 var levelup = require('levelup')
 var locket  = require('locket')
@@ -78,7 +50,6 @@ module.exports = function (config) {
         })
     
     }})
-    console.log("READY")
     defer.ready()
   })
 
@@ -87,7 +58,6 @@ module.exports = function (config) {
   })
 
   getter.resolve = defer(function (module, range, opts, cb) {
-    console.error('***************', module, range)
     if(!cb) cb = opts, opts = {}
     //it's a url
     if(/\//.test(range)) {
@@ -117,7 +87,6 @@ module.exports = function (config) {
     function next(err, data, meta) {
       //**************************************************
       //extract the package.json from data, and return it.
-      console.error(meta)
       if(err) return cb(err)
 
       zlib.gunzip(data, function (err, data) {        
@@ -149,8 +118,9 @@ if(!module.parent) {
   var id = opts._[0]
 
   if(opts.resolve) {
-    var m = opts.resolve.split('@')[0]
-    var v = opts.resolve.split('@')[1]
+    var parts = opts.resolve.split('@')
+    var m = parts.shift()
+    var v = parts.shift() || '*'
     return get.resolve(m, v, opts, function (err, pkg) {
       if(err) throw err
       console.log(JSON.stringify(pkg, null, 2))
