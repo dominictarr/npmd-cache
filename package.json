@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "sha256d": "~1.0.0",
-    "request": "1",
+    "request": "2",
     "mkdirp": "~0.3.5",
     "npm-github-resolve-url": "0.0.0",
     "locket": "bigeasy/locket",
