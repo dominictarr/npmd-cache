@@ -1,6 +1,8 @@
 module.exports = function createDefer () {
   var waiting = [], ready = false
   function defer (fun) {
+    if('function' !== typeof fun)
+      throw new Error('defer *must* be called with a function')
     return function () {
       var args = [].slice.call(arguments)
       var self = this
