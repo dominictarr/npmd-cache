@@ -18,14 +18,15 @@ var concat = require('concat-stream')
 var streamify = require('streamify')
 var EventEmitter = require('events').EventEmitter
 
-module.exports = function (config) {
+module.exports = function (db, config) {
+  if(!config) config = db, db = null
   var get, db, blobs
   var getter = new EventEmitter()
 
   var defer = createDefer()
 
   mkdirp(config.dbPath, function () {
-    db = levelup(path.join(config.dbPath, 'db'), {encoding: 'json', db: locket})
+    db = db || levelup(path.join(config.dbPath, 'db'), {encoding: 'json', db: locket})
 
     //***************************************************
     //*** TODO: migrate to sha256.
