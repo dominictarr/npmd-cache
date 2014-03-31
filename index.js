@@ -16,21 +16,23 @@ var crypto = require('crypto')
 var tar    = require('tar-stream')
 var concat = require('concat-stream')
 var streamify = require('streamify')
+var EventEmitter = require('events').EventEmitter
 
 module.exports = function (config) {
   var get, db, blobs
+  var getter = new EventEmitter()
 
   var defer = createDefer()
 
-  mkdirp(config.path, function () {
-    db = levelup(path.join(config.path, 'db'), {encoding: 'json', db: locket})
+  mkdirp(config.dbPath, function () {
+    db = levelup(path.join(config.dbPath, 'db'), {encoding: 'json', db: locket})
 
     //***************************************************
     //*** TODO: migrate to sha256.
     //*** sha1 is insecure, but need it to be compatible with npm.
     //***************************************************
 
-    blobs = CAS(path.join(config.path, 'blobs'), 'sha1')
+    blobs = CAS(path.join(config.dbPath, 'blobs'), 'sha1')
 
     get = cache(db, blobs, {getter: function (key, meta, cb) {
       var url = npmUrl (key)
@@ -54,10 +56,12 @@ module.exports = function (config) {
     defer.ready()
   })
 
-  var getter = defer(function () {
+
+  var get = defer(function () {
     return get.apply(this, arguments)
   })
-  getter.get = getter
+
+  getter.get = get
 
   var createStream = defer(function (id, cb) {
     var key, hash
@@ -103,6 +107,8 @@ module.exports = function (config) {
     }
     return createStream(key, cb)
   }
+
+  //TODO this should use streams.
 
   getter.resolve = defer(function (module, range, opts, cb) {
     if(!cb) cb = opts, opts = {}
@@ -161,7 +167,8 @@ module.exports = function (config) {
 
 if(!module.parent) {
   var opts = require('minimist')(process.argv.slice(2))
-  var get = module.exports ({path: path.join(process.env.HOME, '.npmd')})
+  var config = {dbPath: opts.dbPath || path.join(process.env.HOME, '.npmd')}
+  var get = module.exports (opts)
   var id = opts._[0]
 
   if(opts.resolve) {
@@ -182,3 +189,4 @@ if(!module.parent) {
       console.log(meta)
   })
 }
+
