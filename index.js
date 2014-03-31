@@ -26,7 +26,7 @@ module.exports = function (db, config) {
   var defer = createDefer()
 
   mkdirp(config.dbPath, function () {
-    db = db || levelup(path.join(config.dbPath, 'db'), {encoding: 'json', db: locket})
+    db = db || levelup(path.join(config.dbPath, 'jsdb'), {encoding: 'json', db: locket})
 
     //***************************************************
     //*** TODO: migrate to sha256.
@@ -41,13 +41,14 @@ module.exports = function (db, config) {
       //if it's a github url, must cleanup the tarball
       if(/^https?:\/\/\w+\.github\.com/.test(url))
         deterministic(request({url: url, encoding: null}), cb)
-      
       else
         request({url: url, encoding: null}, function (err, response, body) {
           if(err) return cb(err)
 
           if(response.statusCode !== 200) {
-            return cb(new Error(body.toString()))
+            return cb(new Error(
+              'error attemping to fetch: ' + url +
+              ' ' + body.toString()))
           }
           cb(null, body, {})
         })
