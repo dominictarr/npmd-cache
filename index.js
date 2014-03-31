@@ -58,15 +58,14 @@ module.exports = function (db, config) {
   })
 
 
-  var get = defer(function () {
+   getter.get = defer(function () {
     return get.apply(this, arguments)
   })
-
-  getter.get = get
 
   var createStream = defer(function (id, cb) {
     var key, hash
     function getHash (hash, cb) {
+      if(!hash) throw new Error('no hash was provided')
       blobs.has(hash, function (err) {
         if(err) return cb(err)
         cb(null, blobs.getStream(hash))
@@ -74,7 +73,7 @@ module.exports = function (db, config) {
     }
 
     function getKey (key, cb) {
-      get(key, function (err, meta) {
+      get(key, function (err, content, meta) {
         if(err) return cb(err)
         getHash(meta.hash, cb)
       })
@@ -169,20 +168,20 @@ module.exports = function (db, config) {
 if(!module.parent) {
   var opts = require('minimist')(process.argv.slice(2))
   var config = {dbPath: opts.dbPath || path.join(process.env.HOME, '.npmd')}
-  var get = module.exports (opts)
+  var cachedb = module.exports (config)
   var id = opts._[0]
 
   if(opts.resolve) {
     var parts = opts.resolve.split('@')
     var m = parts.shift()
     var v = parts.shift() || '*'
-    return get.resolve(m, v, opts, function (err, pkg) {
+    return cachedb.resolve(m, v, opts, function (err, pkg) {
       if(err) throw err
       console.log(JSON.stringify(pkg, null, 2))
     })
   }
-
-  get(id, opts, function (err, body, meta) {
+  
+  cachedb.get(id, opts, function (err, body, meta) {
     if(err) throw err
     if(opts.dump !== false)
       process.stdout.write(body)
