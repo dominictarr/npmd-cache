@@ -15,7 +15,7 @@ var zlib   = require('zlib')
 var crypto = require('crypto')
 var tar    = require('tar-stream')
 var concat = require('concat-stream')
-
+var streamify = require('streamify')
 
 module.exports = function (config) {
   var get, db, blobs
@@ -50,12 +50,57 @@ module.exports = function (config) {
         })
     
     }})
+
     defer.ready()
   })
 
   var getter = defer(function () {
     return get.apply(this, arguments)
   })
+  var createStream = defer(function (id, cb) {
+    var key, hash
+    function getHash (hash, cb) {
+      blobs.has(hash, function (err) {
+        if(err) return cb(err)
+        cb(null, blobs.getStream(hash))
+      })
+    }
+
+    function getKey (key, cb) {
+      get(key, function (err, meta) {
+        if(err) return cb(err)
+        getHash(meta.hash, cb)
+      })
+    }
+
+    if(id.key && id.hash) {
+      getHash(id.hash, function (err, stream) {
+        if(err) {
+          if(err.code === 'ENOENT') getKey(id.key, cb)
+          else                      cb(err)
+          return
+        }
+        cb(null, stream)
+      })
+    }
+    else if(blobs.isHash(id))
+      return getHash(id, cb)
+    else
+      return getKey(id, cb)
+
+  })
+
+  getter.createStream = function (key, cb) {
+    if(!cb) {
+      var stream = streamify()
+      return createStream(key, function (err, _stream) {
+        if(err) return stream.emit('error', err)
+        stream.resolve(_stream)
+      })
+      return stream
+    }
+    return createStream(key, cb)
+  }
 
   getter.resolve = defer(function (module, range, opts, cb) {
     if(!cb) cb = opts, opts = {}
@@ -63,7 +108,7 @@ module.exports = function (config) {
     if(/\//.test(range)) {
       get(range, config, next)
     }
-    else if(semver.valid(range))
+    else if(semver.valid(range, true))
       get(module+'@'+range, config, next)
     //it's a module
     else {
@@ -74,7 +119,7 @@ module.exports = function (config) {
           versions[version] = pkg.value
         })
         .on('end', function () {
-          var version = semver.maxSatisfying(Object.keys(versions), range)
+          var version = semver.maxSatisfying(Object.keys(versions), range, true)
           if(!version) return cb(new Error('could not resolve' + module + '@' + range))
 
           get(versions[version].hash, function (err, content) {
