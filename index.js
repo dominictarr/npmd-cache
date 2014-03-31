@@ -37,7 +37,7 @@ module.exports = function (db, config) {
 
     get = cache(db, blobs, {getter: function (key, meta, cb) {
       var url = npmUrl (key)
-
+      console.error('GET', url)
       //if it's a github url, must cleanup the tarball
       if(/^https?:\/\/\w+\.github\.com/.test(url))
         deterministic(request({url: url, encoding: null}), cb)
