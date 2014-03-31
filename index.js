@@ -57,6 +57,8 @@ module.exports = function (config) {
   var getter = defer(function () {
     return get.apply(this, arguments)
   })
+  getter.get = getter
+
   var createStream = defer(function (id, cb) {
     var key, hash
     function getHash (hash, cb) {
