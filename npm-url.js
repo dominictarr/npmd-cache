@@ -11,7 +11,7 @@ module.exports = function (pkg) {
     version = pkg.version
   }
   //module@version
-  else if(m = /([\w_-]+)@(.*)/.exec(pkg)) {
+  else if(m = /^([\w._-]+)@(.*)$/.exec(pkg)) {
     name = m[1]
     version = m[2]
     return 'https://registry.npmjs.org/' + name + '/-/' + name + '-' + version + '.tgz'
