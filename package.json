@@ -20,7 +20,9 @@
     "semver": "~2.2.1",
     "tar-stream": "~0.3.0",
     "concat-stream": "~1.4.4",
-    "streamify": "~0.2.3"
+    "streamify": "~0.2.3",
+    "pull-stream": "~2.21.0",
+    "pull-level": "~1.1.10"
   },
   "devDependencies": {
     "minimist": "0.0.8"
