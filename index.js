@@ -1,3 +1,5 @@
+#! /usr/bin/env node
+
 var path    = require('path')
 var levelup = require('levelup')
 var locket  = require('locket')
@@ -17,6 +19,9 @@ var tar    = require('tar-stream')
 var concat = require('concat-stream')
 var streamify = require('streamify')
 var EventEmitter = require('events').EventEmitter
+
+var pull = require('pull-stream')
+var pl = require('pull-level')
 
 module.exports = function (db, config) {
   if(!config) config = db, db = null
@@ -58,9 +63,16 @@ module.exports = function (db, config) {
     defer.ready()
   })
 
-
    getter.get = defer(function () {
     return get.apply(this, arguments)
+  })
+
+  getter.allHashes = defer(function (cb) {
+    blobs.all(cb)
+  })
+
+  getter.allKeys = defer(function (cb) {
+    pull(pl.read(db, {keys: false}), pull.collect(cb))
   })
 
   var createStream = defer(function (id, cb) {
@@ -172,14 +184,24 @@ if(!module.parent) {
   var cachedb = module.exports (config)
   var id = opts._[0]
 
+  function dump (err, value) {
+      if(err) throw err
+      console.log(JSON.stringify(value, null, 2))
+  }
+
   if(opts.resolve) {
     var parts = opts.resolve.split('@')
     var m = parts.shift()
     var v = parts.shift() || '*'
-    return cachedb.resolve(m, v, opts, function (err, pkg) {
-      if(err) throw err
-      console.log(JSON.stringify(pkg, null, 2))
-    })
+    return cachedb.resolve(m, v, opts, dump)
+  }
+
+  if(opts.allKeys) {
+    return cachedb.allKeys(dump)
+  }
+  
+  if(opts.allHashes) {
+    return cachedb.allHashes(dump)
   }
   
   cachedb.get(id, opts, function (err, body, meta) {
