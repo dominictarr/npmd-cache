@@ -99,6 +99,16 @@ module.exports = function (db, config) {
           else                      cb(err)
           return
         }
+
+        //Is this a security hole?
+        //I think we can't resolve that until there are signed packages anyway.
+        db.get(id.key, function (err) {
+          if(err)
+            db.put(id.key, {
+              key: id.key, hash: id.hash, ts: Date.now()              
+            }, function () {})
+        })
+
         cb(null, stream)
       })
     }
