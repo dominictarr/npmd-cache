@@ -117,13 +117,15 @@ module.exports = function (db, config) {
         //
         //I was worried that would be slow -- a bloom filter would need to be saved
         //what about if has kept a cache? yeah - doing a readdir and remembering the hashes would be very fast.
-        db.get(id.key, function (err) {
-          if(err)
-            db.put(id.key, {
-              key: id.key, hash: id.hash, ts: Date.now()              
-            }, function () {})
-        })
 
+//This should not be needed with the new offline resolve.
+//        db.get(id.key, function (err) {
+//          if(err)
+//            db.put(id.key, {
+//              key: id.key, hash: id.hash, ts: Date.now()              
+//            }, function () {})
+//        })
+//
         cb(null, stream)
       })
     }
