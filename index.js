@@ -63,8 +63,14 @@ module.exports = function (db, config) {
     defer.ready()
   })
 
-   getter.get = defer(function () {
+  getter.get = defer(function () {
     return get.apply(this, arguments)
+  })
+
+  //some times you need to delete something from the cache
+  //so you can debug the fetch code. that is what this is for.
+  getter._del = defer(function (key, cb) {
+    get._del(key, cb)
   })
 
   getter.allHashes = defer(function (cb) {
@@ -102,6 +108,15 @@ module.exports = function (db, config) {
 
         //Is this a security hole?
         //I think we can't resolve that until there are signed packages anyway.
+        //sometimes we definately don't want to update this...
+        //like, when we are installing a prepublished hash, say for testing.
+        //the version number cannot be official until it's in the registry,
+        //because otherwise it'll be out of order. I needed this for offline
+        //resolve, but maybe the better way is to resolve from the .cache.json
+        //but filter to the tarballs that are in the content store?
+        //
+        //I was worried that would be slow -- a bloom filter would need to be saved
+        //what about if has kept a cache? yeah - doing a readdir and remembering the hashes would be very fast.
         db.get(id.key, function (err) {
           if(err)
             db.put(id.key, {
@@ -146,7 +161,10 @@ module.exports = function (db, config) {
       var versions = {}
       db.createReadStream({start: module + '\x00', end: module + '\xff\xff'})
         .on('data', function (pkg) {
-          var version = pkg.key.split('@')[1]
+          var parts = pkg.key.split('@')
+          var name = parts[0]
+          if(name !== module) return
+          var version = parts[1]
           versions[version] = pkg.value
         })
         .on('end', function () {
@@ -165,7 +183,7 @@ module.exports = function (db, config) {
       //extract the package.json from data, and return it.
       if(err) return cb(err)
 
-      zlib.gunzip(data, function (err, data) {        
+      zlib.gunzip(data, function (err, data) {
         if(err) return cb(err)
 
         var extract = tar.extract()
@@ -181,7 +199,7 @@ module.exports = function (db, config) {
 
         extract.write(data)
         extract.end()
-      })  
+      })
     }
   })
 
@@ -204,6 +222,14 @@ if(!module.parent) {
     var m = parts.shift()
     var v = parts.shift() || '*'
     return cachedb.resolve(m, v, opts, dump)
+  }
+
+  if(opts.del) {
+    var id = opts.del
+    return cachedb._del(id, function (err, value) {
+      if(err) throw err
+      console.log(value)
+    })
   }
 
   if(opts.allKeys) {
