@@ -2,7 +2,6 @@
 
 var path    = require('path')
 var levelup = require('levelup')
-var locket  = require('locket')
 var CAS     = require('content-addressable-store')
 var cache   = require('level-content-cache')
 var request = require('request')
@@ -24,14 +23,15 @@ var pull = require('pull-stream')
 var pl = require('pull-level')
 
 module.exports = function (db, config) {
-  if(!config) config = db, db = null
+  if(!db) throw new Error('must have db and config')
+  if(!config) throw new Error('must have db and config')
+
   var get, db, blobs
   var getter = new EventEmitter()
 
   var defer = createDefer()
 
   mkdirp(config.dbPath, function () {
-    db = db || levelup(path.join(config.dbPath, 'jsdb'), {encoding: 'json', db: locket})
 
     //***************************************************
     //*** TODO: migrate to sha256.
@@ -44,20 +44,21 @@ module.exports = function (db, config) {
       var url = npmUrl (key)
       console.error('GET', url)
       //if it's a github url, must cleanup the tarball
-      if(/^https?:\/\/\w+\.github\.com/.test(url))
-        deterministic(request({url: url, encoding: null}), cb)
-      else
-        request({url: url, encoding: null}, function (err, response, body) {
-          if(err) return cb(err)
-
-          if(response.statusCode !== 200) {
-            return cb(new Error(
-              'error attemping to fetch: ' + url +
-              ' ' + body.toString()))
-          }
-          cb(null, body, {})
-        })
-    
+      //if(/^https?:\/\//.test(url))
+      //CHANGED MY MIND - clean up every url!
+      deterministic(request({url: url, encoding: null}), cb)
+//      else
+//        request({url: url, encoding: null}, function (err, response, body) {
+//          if(err) return cb(err)
+//
+//          if(response.statusCode !== 200) {
+//            return cb(new Error(
+//              'error attemping to fetch: ' + url +
+//              ' ' + body.toString()))
+//          }
+//          cb(null, body, {})
+//        })
+//    
     }})
 
     defer.ready()
@@ -189,18 +190,20 @@ module.exports = function (db, config) {
 
       zlib.gunzip(data, function (err, data) {
         if(err) return cb(err)
-
+        var found = false
         var extract = tar.extract()
           .on('entry', function (header, stream, done) {
             if(header.name !== 'package/package.json') return done()
-            
             stream.pipe(concat(function (data) {
+              found = true
               try { data = JSON.parse(data) } catch (err) { return done(), cb(err) }
               data.shasum = meta.hash
               done(), cb(null, data)
             }))
           })
-
+          .on('end', function () {
+            if(!found) return cb(new Error('package.json not found inside ' + v))
+          })
         extract.write(data)
         extract.end()
       })
@@ -208,48 +211,5 @@ module.exports = function (db, config) {
   })
 
   return getter
-}
-
-if(!module.parent) {
-  var opts = require('minimist')(process.argv.slice(2))
-  var config = {dbPath: opts.dbPath || path.join(process.env.HOME, '.npmd')}
-  var cachedb = module.exports (config)
-  var id = opts._[0]
-
-  function dump (err, value) {
-      if(err) throw err
-      console.log(JSON.stringify(value, null, 2))
-  }
-
-  if(opts.resolve) {
-    var parts = opts.resolve.split('@')
-    var m = parts.shift()
-    var v = parts.shift() || '*'
-    return cachedb.resolve(m, v, opts, dump)
-  }
-
-  if(opts.del) {
-    var id = opts.del
-    return cachedb._del(id, function (err, value) {
-      if(err) throw err
-      console.log(value)
-    })
-  }
-
-  if(opts.allKeys) {
-    return cachedb.allKeys(dump)
-  }
-  
-  if(opts.allHashes) {
-    return cachedb.allHashes(dump)
-  }
-  
-  cachedb.get(id, opts, function (err, body, meta) {
-    if(err) throw err
-    if(opts.dump !== false)
-      process.stdout.write(body)
-    else
-      console.log(meta)
-  })
 }
 
