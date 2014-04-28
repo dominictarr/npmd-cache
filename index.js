@@ -159,6 +159,8 @@ module.exports = function (db, config) {
     else if(semver.valid(range, true))
       get(module+'@'+range, config, next)
     //it's a module
+    else if(/^[0-9a-f]{40,64}$/.test(range))
+      get(range, config, next)
     else {
       var versions = {}
       db.createReadStream({start: module + '\x00', end: module + '\xff\xff'})
