@@ -12,7 +12,6 @@
     "request": "2",
     "mkdirp": "~0.3.5",
     "npm-github-resolve-url": "0.0.1",
-    "locket": "bigeasy/locket",
     "levelup": "~0.18.2",
     "level-content-cache": "^1.1.2",
     "content-addressable-store": "^1.5.0",
