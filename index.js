@@ -201,7 +201,7 @@ module.exports = function (db, config) {
               done(), cb(null, data)
             }))
           })
-          .on('end', function () {
+          .on('finish', function () {
             if(!found) return cb(new Error('package.json not found inside ' + v))
           })
         extract.write(data)
