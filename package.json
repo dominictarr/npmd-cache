@@ -26,7 +26,8 @@
   },
   "devDependencies": {
     "minimist": "0.0.8",
-    "tape": "~2.12.1"
+    "tape": "~2.12.1",
+    "level": "~0.18.0"
   },
   "scripts": {
     "test": "set -e; for t in test/*.js; do node $t; done"
