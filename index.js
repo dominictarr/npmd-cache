@@ -44,21 +44,20 @@ module.exports = function (db, config) {
       var url = npmUrl (key)
       console.error('GET', url)
       //if it's a github url, must cleanup the tarball
-      //if(/^https?:\/\//.test(url))
-      //CHANGED MY MIND - clean up every url!
-      deterministic(request({url: url, encoding: null}), cb)
-//      else
-//        request({url: url, encoding: null}, function (err, response, body) {
-//          if(err) return cb(err)
-//
-//          if(response.statusCode !== 200) {
-//            return cb(new Error(
-//              'error attemping to fetch: ' + url +
-//              ' ' + body.toString()))
-//          }
-//          cb(null, body, {})
-//        })
-//    
+      //DO NOT DO THIS ON NPM REGISTRIES! It will break the shasum!!!
+      if(/^https?:\/\/[^/]*github.com/.test(url))
+        deterministic(request({url: url, encoding: null}), cb)
+      else
+        request({url: url, encoding: null}, function (err, response, body) {
+          if(err) return cb(err)
+
+          if(response.statusCode !== 200) {
+            return cb(new Error(
+              'error attemping to fetch: ' + url +
+              ' ' + body.toString()))
+          }
+          cb(null, body, {})
+        })
     }})
 
     defer.ready()
@@ -92,8 +91,9 @@ module.exports = function (db, config) {
       })
     }
 
-    function getKey (key, cb) {
-      get(key, function (err, content, meta) {
+    function getKey (key, opts, cb) {
+      if(!cb) cb = opts, opts = {}
+      get(key, opts, function (err, content, meta) {
         if(err) return cb(err)
         getHash(meta.hash, cb)
       })
@@ -102,6 +102,7 @@ module.exports = function (db, config) {
     if(id.key && id.hash) {
       getHash(id.hash, function (err, stream) {
         if(err) {
+          console.log('NO ENT!', id)
           if(err.code === 'ENOENT') getKey(id.key, cb)
           else                      cb(err)
           return
