@@ -102,7 +102,6 @@ module.exports = function (db, config) {
     if(id.key && id.hash) {
       getHash(id.hash, function (err, stream) {
         if(err) {
-          console.log('NO ENT!', id)
           if(err.code === 'ENOENT') getKey(id.key, cb)
           else                      cb(err)
           return
