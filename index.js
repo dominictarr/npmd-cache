@@ -26,7 +26,7 @@ module.exports = function (db, config) {
   if(!db) throw new Error('must have db and config')
   if(!config) throw new Error('must have db and config')
 
-  var get, db, blobs
+  var get, getFromUrl, db, blobs
   var getter = new EventEmitter()
 
   var defer = createDefer()
@@ -40,8 +40,10 @@ module.exports = function (db, config) {
 
     blobs = CAS(path.join(config.dbPath, 'blobs'), 'sha1')
 
-    get = cache(db, blobs, {getter: function (key, meta, cb) {
-      var url = npmUrl (key)
+    get = getFromUrl = cache(db, blobs, {getter: function (key, meta, cb) {
+      var url
+      if(config.tarballUrlsForCacheKey) url = config.tarballUrlsForCacheKey[key]
+      if(!url) url = npmUrl (key)
       console.error('GET', url)
       //if it's a github url, must cleanup the tarball
       //DO NOT DO THIS ON NPM REGISTRIES! It will break the shasum!!!
@@ -59,6 +61,9 @@ module.exports = function (db, config) {
           cb(null, body, {})
         })
     }})
+
+    if(config.customGetFromUrl)
+      getFromUrl = require(config.customGetFromUrl)(getFromUrl)
 
     defer.ready()
   })
@@ -155,7 +160,7 @@ module.exports = function (db, config) {
     if(!cb) cb = opts, opts = {}
     //it's a url
     if(/\//.test(range)) {
-      get(range, config, next)
+      getFromUrl(range, config, next)
     }
     else if(semver.valid(range, true))
       get(module+'@'+range, config, next)
@@ -183,7 +188,7 @@ module.exports = function (db, config) {
 
     }
 
-    function next(err, data, meta) {
+    function next(err, data, meta, from) {
       //**************************************************
       //extract the package.json from data, and return it.
       if(err) return cb(err)
@@ -198,6 +203,7 @@ module.exports = function (db, config) {
               found = true
               try { data = JSON.parse(data) } catch (err) { return done(), cb(err) }
               data.shasum = meta.hash
+              if(from) data.from = from;
               done(), cb(null, data)
             }))
           })
