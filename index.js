@@ -26,7 +26,7 @@ module.exports = function (db, config) {
   if(!db) throw new Error('must have db and config')
   if(!config) throw new Error('must have db and config')
 
-  var get, db, blobs
+  var get, getFromUrl, db, blobs
   var getter = new EventEmitter()
 
   var defer = createDefer()
@@ -40,7 +40,7 @@ module.exports = function (db, config) {
 
     blobs = CAS(path.join(config.dbPath, 'blobs'), 'sha1')
 
-    get = cache(db, blobs, {getter: function (key, meta, cb) {
+    get = getFromUrl = cache(db, blobs, {getter: function (key, meta, cb) {
       var url = npmUrl (key)
       console.error('GET', url)
       //if it's a github url, must cleanup the tarball
@@ -155,7 +155,7 @@ module.exports = function (db, config) {
     if(!cb) cb = opts, opts = {}
     //it's a url
     if(/\//.test(range)) {
-      get(range, config, next)
+      getFromUrl(range, config, next)
     }
     else if(semver.valid(range, true))
       get(module+'@'+range, config, next)
