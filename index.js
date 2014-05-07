@@ -41,7 +41,9 @@ module.exports = function (db, config) {
     blobs = CAS(path.join(config.dbPath, 'blobs'), 'sha1')
 
     get = getFromUrl = cache(db, blobs, {getter: function (key, meta, cb) {
-      var url = npmUrl (key)
+      var url
+      if(config.tarballUrlsForCacheKey) url = config.tarballUrlsForCacheKey[key]
+      if(!url) url = npmUrl (key)
       console.error('GET', url)
       //if it's a github url, must cleanup the tarball
       //DO NOT DO THIS ON NPM REGISTRIES! It will break the shasum!!!
