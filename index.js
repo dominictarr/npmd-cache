@@ -186,7 +186,7 @@ module.exports = function (db, config) {
 
     }
 
-    function next(err, data, meta) {
+    function next(err, data, meta, from) {
       //**************************************************
       //extract the package.json from data, and return it.
       if(err) return cb(err)
@@ -201,6 +201,7 @@ module.exports = function (db, config) {
               found = true
               try { data = JSON.parse(data) } catch (err) { return done(), cb(err) }
               data.shasum = meta.hash
+              if(from) data.from = from;
               done(), cb(null, data)
             }))
           })
