@@ -60,6 +60,9 @@ module.exports = function (db, config) {
         })
     }})
 
+    if(config.customGetFromUrl)
+      getFromUrl = require(config.customGetFromUrl)(getFromUrl)
+
     defer.ready()
   })
 
