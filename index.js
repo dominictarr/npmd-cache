@@ -26,8 +26,14 @@ module.exports = function (db, config) {
   if(!db) throw new Error('must have db and config')
   if(!config) throw new Error('must have db and config')
 
-  var get, db, blobs
+  var get, db, blobs, auth
   var getter = new EventEmitter()
+
+  if (config.alwaysAuth) {
+    var creds = Buffer(config.Auth, 'base64').toString()
+    var segs = creds.split(':')
+    auth = { user: segs[0], pass: segs[1] }
+  }
 
   var defer = createDefer()
 
@@ -48,7 +54,9 @@ module.exports = function (db, config) {
       if(/^https?:\/\/[^/]*github.com/.test(url))
         deterministic(request({url: url, encoding: null}), cb)
       else
-        request({url: url, encoding: null}, function (err, response, body) {
+        request({
+          url: url, encoding: null, auth: auth
+        }, function (err, response, body) {
           if(err) return cb(err)
 
           if(response.statusCode !== 200) {
