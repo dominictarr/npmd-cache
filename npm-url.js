@@ -3,7 +3,9 @@
 
 var github = require('npm-github-resolve-url')
 
-module.exports = function (pkg) {
+module.exports = function (pkg, config) {
+  config = config || {}
+  var registry = config.registry || 'https://registry.npmjs.org'
   var name, version, m
   //pkg
   if('object' === typeof pkg && pkg.name && pkg.version) {
@@ -14,7 +16,7 @@ module.exports = function (pkg) {
   else if(m = /^([\w._-]+)@(.*)$/.exec(pkg)) {
     name = m[1]
     version = m[2]
-    return 'https://registry.npmjs.org/' + name + '/-/' + name + '-' + version + '.tgz'
+    return registry + '/' + name + '/-/' + name + '-' + version + '.tgz'
   }
 
   //handle multilpe type of github urls,
