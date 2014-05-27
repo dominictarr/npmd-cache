@@ -17,7 +17,7 @@ module.exports = function (pkg, config) {
   else if(m = /^([\w._-]+)@(.*)$/.exec(pkg)) {
     name = m[1]
     version = m[2]
-    if(semver.validRange(version))
+    if(semver.validRange(version, true))
       return registry + '/' + name + '/-/' + name + '-' + version + '.tgz'
     //else, assume it's a url.
     return version
