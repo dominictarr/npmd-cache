@@ -2,7 +2,6 @@
 //TODO: redo all of this with tests and stuff...
 
 var github = require('npm-github-resolve-url')
-var semver = require('semver')
 
 module.exports = function (pkg, config) {
   config = config || {}
@@ -17,12 +16,9 @@ module.exports = function (pkg, config) {
   else if(m = /^([\w._-]+)@(.*)$/.exec(pkg)) {
     name = m[1]
     version = m[2]
-    if(semver.validRange(version, true))
-      return registry + '/' + name + '/-/' + name + '-' + version + '.tgz'
-    //else, assume it's a url.
-    return version
+    return registry + '/' + name + '/-/' + name + '-' + version + '.tgz'
   }
-  
+
   //handle multilpe type of github urls,
   //including git urls (which will download from github http download api)
   if(m = github(pkg))
