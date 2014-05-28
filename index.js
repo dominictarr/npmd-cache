@@ -6,7 +6,7 @@ var CAS     = require('content-addressable-store')
 var cache   = require('level-content-cache')
 var request = require('request')
 var mkdirp  = require('mkdirp')
-var npmUrl  = require('./npm-url')
+var npmUrl  = require('npmd-url')
 var deterministic = require('./deterministic')
 
 var createDefer = require('./defer')
