@@ -21,6 +21,7 @@ module.exports = function (stream, cb) {
   }
 
   stream
+    .on('error', errback)
     .pipe(zlib.createGunzip())
     .on('error', errback)
     .pipe(dtar(function (header) {
