@@ -1,7 +1,6 @@
 #! /usr/bin/env node
 
 var path    = require('path')
-var levelup = require('levelup')
 var CAS     = require('content-addressable-store')
 var cache   = require('level-content-cache')
 var request = require('request')
