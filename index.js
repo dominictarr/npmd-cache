@@ -11,9 +11,8 @@ var deterministic = require('./deterministic')
 var createDefer = require('./defer')
 
 var semver = require('semver')
-var zlib   = require('zlib')
-var crypto = require('crypto')
-var tar    = require('tar-stream')
+var xft = require('extract-from-tarball')
+
 var concat = require('concat-stream')
 var streamify = require('streamify')
 var EventEmitter = require('events').EventEmitter
@@ -47,7 +46,6 @@ module.exports = function (db, config) {
 
     get = cache(db, blobs, {getter: function (key, meta, cb) {
       var url = npmUrl (key, config)
-      console.error('GET', url)
       //if it's a github url, must cleanup the tarball
       //DO NOT DO THIS ON NPM REGISTRIES! It will break the shasum!!!
       if(/^https?:\/\/[^/]*github.com/.test(url))
@@ -72,6 +70,16 @@ module.exports = function (db, config) {
 
   getter.get = defer(function () {
     return get.apply(this, arguments)
+  })
+
+  //sometimes you want to add a module that
+  //hasn't actually been published yet.
+  //so stick it in, indexing only by it's hash.
+
+  //if it's actually published later, that is cool.
+
+  getter.addTarball = defer(function (buffer, opts, cb) {
+    return blobs.add(buffer, opts, cb)
   })
 
   //some times you need to delete something from the cache
@@ -195,24 +203,16 @@ module.exports = function (db, config) {
       //extract the package.json from data, and return it.
       if(err) return cb(err)
 
-      zlib.gunzip(data, function (err, data) {
+      xft(data, {package: xft.package}, function (err, out) {
         if(err) return cb(err)
-        var found = false
-        var extract = tar.extract()
-          .on('entry', function (header, stream, done) {
-            if(header.name !== 'package/package.json') return done()
-            stream.pipe(concat(function (data) {
-              found = true
-              try { data = JSON.parse(data) } catch (err) { return done(), cb(err) }
-              data.shasum = meta.hash
-              done(), cb(null, data)
-            }))
-          })
-          .on('finish', function () {
-            if(!found) return cb(new Error('package.json not found inside ' + v))
-          })
-        extract.write(data)
-        extract.end()
+        var pkg
+        try {
+          pkg = JSON.parse(out.package.source.toString('utf8'))
+          pkg.shasum = meta.hash
+        } catch (err) {
+          return cb(err)
+        }
+        cb(null, pkg)
       })
     }
   })
