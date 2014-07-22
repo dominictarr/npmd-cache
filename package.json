@@ -21,7 +21,8 @@
     "streamify": "~0.2.3",
     "pull-stream": "~2.21.0",
     "pull-level": "~1.1.10",
-    "npmd-url": "~1.0.0"
+    "npmd-url": "~1.0.0",
+    "extract-from-tarball": "~1.0.2"
   },
   "devDependencies": {
     "minimist": "0.0.8",
