@@ -1,11 +1,14 @@
 #! /usr/bin/env node
 
-var path    = require('path')
-var CAS     = require('content-addressable-store')
-var cache   = require('level-content-cache')
-var request = require('request')
-var mkdirp  = require('mkdirp')
-var npmUrl  = require('npmd-url')
+var path      = require('path')
+var CAS       = require('content-addressable-store')
+var cache     = require('level-content-cache')
+var request   = require('request')
+var mkdirp    = require('mkdirp')
+var npmUrl    = require('npmd-url')
+var levelup   = require('levelup')
+var medeadown = require('medeadown')
+
 var deterministic = require('./deterministic')
 
 var createDefer = require('./defer')
