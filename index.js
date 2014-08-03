@@ -21,8 +21,13 @@ var pull = require('pull-stream')
 var pl = require('pull-level')
 
 module.exports = function (db, config) {
-  if(!db) throw new Error('must have db and config')
+  if(!config) config = db, db = null
   if(!config) throw new Error('must have db and config')
+  if(!db)
+    db = levelup(
+      path.join(config.dbPath, config.jsdb ? 'jsdb' : 'db'),
+      {encoding: 'json', db: medeadown}
+    )
 
   var get, db, blobs, auth
   var getter = new EventEmitter()
