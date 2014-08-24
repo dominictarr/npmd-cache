@@ -32,6 +32,17 @@ module.exports = function (db, config) {
       {encoding: 'json', db: medeadown}
     )
 
+  function unlock () {
+    require('fs').unlinkSync(
+      path.join(config.dbPath, config.jsdb ? 'jsdb' : 'db', 'medea.lock')
+    )
+    process.exit(1)
+  }
+
+  process.on('SIGINT', unlock)
+  process.on('SIGTERM', unlock)
+
+
   var get, db, blobs, auth
   var getter = new EventEmitter()
 
