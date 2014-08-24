@@ -1,11 +1,10 @@
 #! /usr/bin/env node
 var npmdCache = require('./')
-var level = require('level')
 var path = require('path')
 
 var opts = require('minimist')(process.argv.slice(2))
 var config = {dbPath: opts.dbPath || path.join(process.env.HOME, '.npmd')}
-var cachedb = npmdCache (level(config.dbPath + '/db', {encoding: 'json'}), config)
+var cachedb = npmdCache (null, config)
 var id = opts._[0]
 
 function dump (err, value) {
